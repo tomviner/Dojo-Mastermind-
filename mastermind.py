@@ -4,31 +4,35 @@ from collections import namedtuple
 
 from knuth import Knuth
 
-CODE_LEN = 6
+
+CODE_LEN = 4
 COLOURS = ['R', 'B', 'G', 'Y', 'O', 'P']
-secret_pattern = None
+
 
 class Result(object):
     def __init__(self, exact, elsewhere):
         self.exact = exact
         self.elsewhere = elsewhere        
 
-    def __str__(self):
-        return '%s %s' % ('B' * self.exact, 'W' * self.elsewhere)
+    def __repr__(self):
+        return ' '.join('B' * self.exact + 'W' * self.elsewhere) or '-'
+
+    def __cmp__(self, other):
+        return cmp(vars(self), vars(other))
 
 
 def main():
     secret_pattern = set_secret_pattern()
-    guesses_left = 10
-    ai = Knuth(COLOURS, CODE_LEN).guesser()
-    result = None
+    guesses_left = 90
+    ai = Knuth(COLOURS, CODE_LEN, secret_pattern).guesser()
+    results = None
     i = 0
     while guesses_left > 0:
         i += 1
         #guess = get_guess()
-        guess = ai.send(result)
+        guess = ai.send(results)
         print '%2.d)' % i,
-        print guess,
+        print ''.join(guess),
         results = check_guess(guess, secret_pattern)
         print results
         if results.exact == CODE_LEN:
@@ -54,12 +58,12 @@ def get_guess():
                 return s
 
 def set_secret_pattern():
-    pattern = [random.choice(COLOURS) for _ in range(len(COLOURS))]
-    print "secret pattern is %s (ssh!)" %  pattern
+    pattern = tuple([random.choice(COLOURS) for _ in range(CODE_LEN)])
+    print "secret pattern \n is %s (ssh!)" %  (''.join(pattern),)
     return pattern
 
 
-def check_guess(guess, solution):
+def Z_check_guess(guess, solution):
     guess = guess.upper()
     exact = 0
     wrong_pos = 0
@@ -86,13 +90,15 @@ def check_guess(guess, solution):
 def check_guess(s1, s2):
     """
     >>> check_guess('RGBY', 'RRRR')
-    Result(exact=1, elsewhere=0)
+    B
     >>> check_guess('RGBY', 'GRRR')
-    Result(exact=0, elsewhere=2)
+    W W
     >>> check_guess('RYYY', 'RYRY')
-    Result(exact=3, elsewhere=0)
+    B B B
     >>> check_guess('BGGG', 'GGGQ')
-    Result(exact=3, elsewhere=0)
+    B B W
+    >>> check_guess(('O', 'P', 'P', 'Y'), ('O', 'P', 'P', 'Y'))
+    B B B B
     """
     matches = 0
     colcount = { } # col -> [n1, n2]
